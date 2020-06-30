@@ -22,72 +22,55 @@ log = log4py.setup("cleaner.log")
 
 
 def main():
-    log.debug("Started")
+    try:
+        log.debug("Started")
 
-    credentials = gmail_commons.auth()
-    service = build("gmail", "v1", credentials=credentials, cache_discovery=False)
-    results = service.users().settings().filters().list(userId="me").execute()
+        credentials = gmail_commons.auth()
+        service = build("gmail", "v1", credentials=credentials, cache_discovery=False)
+        results = service.users().settings().filters().list(userId="me").execute()
 
-    log.debug("Found: %s filters", len(results["filter"]))
+        log.debug("Found: %s filters", len(results["filter"]))
 
-    messages = []
+        messages = []
 
-    for obj in results["filter"]:
-        query = "from:(" + obj["criteria"]["from"] + ")"
-        log.debug("Query [%s]", query)
+        for obj in results["filter"]:
+            query = "from:(" + obj["criteria"]["from"] + ")"
+            log.debug("Query [%s]", query)
 
-        try:
-            # Search in SPAM
-            response = service.users().messages().list(userId="me", q=query, includeSpamTrash=True,
-                                                       labelIds=["SPAM"]).execute()
-            if "messages" in response:
-                messages.extend(response["messages"])
-                log.debug("Found: %s messages for current query in SPAM", len(response["messages"]))
+            messages.extend(searchMessages(service, query, "SPAM"))
+            messages.extend(searchMessages(service, query, "TRASH"))
 
-            while "nextPageToken" in response:
-                page_token = response["nextPageToken"]
-                response = service.users().messages().list(userId="me", q=query, includeSpamTrash=True,
-                                                           labelIds=["SPAM"],
-                                                           pageToken=page_token).execute()
-                messages.extend(response["messages"])
-                log.debug("Found: %s messages for current query in SPAM", len(response["messages"]))
+        ids = [message["id"] for message in messages]
+        log.debug("Total message to delete: %s", len(ids))
 
-            # Search in TRASH
-            response = service.users().messages().list(userId="me", q=query, includeSpamTrash=True,
-                                                       labelIds=["TRASH"]).execute()
-            if "messages" in response:
-                messages.extend(response["messages"])
-                log.debug("Found: %s messages for current query in TRASH", len(response["messages"]))
-
-            while "nextPageToken" in response:
-                page_token = response["nextPageToken"]
-                response = service.users().messages().list(userId="me", q=query, includeSpamTrash=True,
-                                                           labelIds=["TRASH"],
-                                                           pageToken=page_token).execute()
-                messages.extend(response["messages"])
-                log.debug("Found: %s messages for current query in TRASH", len(response["messages"]))
-
-        except errors.HttpError:
-            log.error("Exception occurred on execution query", exc_info=True)
-
-    ids = [message["id"] for message in messages]
-    log.debug("Total message to delete: %s", len(ids))
-
-    if ids:
-        try:
-            # ---------------
-            ids = ids[0:1]
-            if len(ids) > 1:  # TODO only for tests
-                raise Exception("Too many IDS")
-            # ---------------
+        if ids:
             message = {"ids": ids}
             service.users().messages().batchDelete(userId="me", body=message).execute()
             log.debug("Messages deleted")
 
-        except errors.HttpError:
-            log.error("Exception occurred on delete", exc_info=True)
+        log.debug("Finished")
 
-    log.debug("Finished")
+    except errors.HttpError:
+        log.error("Exception occurred on execution cleaner", exc_info=True)
+
+
+def searchMessages(service, query, label):
+    messages = []
+    response = service.users().messages().list(userId="me", q=query, includeSpamTrash=True,
+                                               labelIds=[label]).execute()
+    if "messages" in response:
+        messages.extend(response["messages"])
+
+    while "nextPageToken" in response:
+        page_token = response["nextPageToken"]
+        response = service.users().messages().list(userId="me", q=query, includeSpamTrash=True,
+                                                   labelIds=[label],
+                                                   pageToken=page_token).execute()
+        messages.extend(response["messages"])
+
+    log.debug("Found: %s messages for current query in %s", len(messages), label)
+
+    return messages
 
 
 if __name__ == "__main__":

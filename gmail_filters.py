@@ -22,29 +22,28 @@ log = log4py.setup("filters.log")
 
 
 def main():
-    log.debug("Started")
+    try:
+        log.debug("Started")
 
-    credentials = gmail_commons.auth()
-    service = build("gmail", "v1", credentials=credentials, cache_discovery=False)
-    gFilters = service.users().settings().filters().list(userId="me").execute()
+        credentials = gmail_commons.auth()
+        service = build("gmail", "v1", credentials=credentials, cache_discovery=False)
+        gFilters = service.users().settings().filters().list(userId="me").execute()
 
-    log.debug("Found: %s filters", len(gFilters["filter"]))
+        log.debug("Found: %s filters", len(gFilters["filter"]))
 
-    emails = prepareSetOfEmails(gFilters)
-    log.debug("Found: %s emails", len(emails))
-    log.debug(emails)
-    log.debug("Begin delete old filters")
-    for gFilter in gFilters["filter"]:
-        try:
+        emails = prepareSetOfEmails(gFilters)
+        log.debug("Found: %s emails", len(emails))
+        log.debug(emails)
+
+        log.debug("Begin delete old filters")
+        for gFilter in gFilters["filter"]:
             service.users().settings().filters().delete(userId="me", id=gFilter["id"]).execute()
-        except errors.HttpError:
-            log.error("Exception occurred on delete filters", exc_info=True)
-    log.debug("End delete old filters")
 
-    log.debug("Begin create new filters")
-    emails = list(emails)  # for slicing we must convert to list
-    for emails in [emails[i:i + 30] for i in range(0, len(emails), 30)]:
-        try:
+        log.debug("End delete old filters")
+
+        log.debug("Begin create new filters")
+        emails = list(emails)  # for slicing we must convert to list
+        for emails in [emails[i:i + 30] for i in range(0, len(emails), 30)]:
             message = {
                 "criteria": {
                     "from": " OR ".join(emails)
@@ -56,11 +55,12 @@ def main():
             service.users().settings().filters().create(userId="me", body=message).execute()
             log.debug("Filter created")
 
-        except errors.HttpError:
-            log.error("Exception occurred on create filters", exc_info=True)
-    log.debug("End create new filters")
+        log.debug("End create new filters")
 
-    log.debug("Finished")
+        log.debug("Finished")
+
+    except errors.HttpError:
+        log.error("Exception occurred on process filters", exc_info=True)
 
 
 def prepareSetOfEmails(filters: dict) -> set:

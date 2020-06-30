@@ -13,6 +13,7 @@
 from __future__ import print_function
 
 import logging.handlers
+import os
 import sys
 from logging import StreamHandler
 from logging.handlers import RotatingFileHandler
@@ -21,7 +22,7 @@ from logging.handlers import RotatingFileHandler
 def setup(filename: str) -> logging.RootLogger:
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-    log = logging.getLogger()
+    log = logging.getLogger(os.path.splitext(filename)[0])
     log.setLevel(logging.DEBUG)
 
     if log.hasHandlers():
