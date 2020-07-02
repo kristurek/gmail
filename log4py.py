@@ -19,11 +19,11 @@ from logging import StreamHandler
 from logging.handlers import RotatingFileHandler
 
 
-def setup(filename: str) -> logging.RootLogger:
+def setup(filename: str, level:int) -> logging.RootLogger:
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     log = logging.getLogger(os.path.splitext(filename)[0])
-    log.setLevel(logging.DEBUG)
+    log.setLevel(level)
 
     if log.hasHandlers():
         log.handlers.clear()

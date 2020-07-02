@@ -18,6 +18,13 @@ pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-
 #### Run scripts
 python3 foo.py
 
-#### Cron
+#### Cron commands
+crontab -e
 ###### 0 * * * * cd /home/kris/gmail; env/bin/python gmail_cleaner.py >> cron.log 2>&1
 ###### 0 0 * * * cd /home/kris/gmail; env/bin/python gmail_filters.py >> cron.log 2>&1
+sudo tail -f /var/log/syslog \
+sudo tail -f /var/log/cron.log \
+sudo nano /etc/rsyslog.d/50-default.conf \
+sudo systemctl restart rsyslog \ 
+sudo systemctl restart cron
+
