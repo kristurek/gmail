@@ -26,6 +26,7 @@ crontab -e
 docker buildx build -t ${DOCKER_USER}/gmail:0.0.1 --platform linux/amd64,linux/arm64 . --push \
 docker run -d --restart always ${DOCKER_USER}/gmail:0.0.1 \
 docker inspect 47324d41f24e \
-docker cp 47324d41f24e:/gmail.log . \
+docker exec 90df87f06f1d cat /var/log/gmail.log \
+docker cp 47324d41f24e:/gmail.log . 
 
 https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408 \

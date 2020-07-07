@@ -19,7 +19,7 @@ from logging import StreamHandler
 from logging.handlers import RotatingFileHandler
 
 
-def setup(filename: str, level:int) -> logging.RootLogger:
+def setup(filename: str, level: int) -> logging.RootLogger:
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     log = logging.getLogger(os.path.splitext(filename)[0])
@@ -32,7 +32,7 @@ def setup(filename: str, level:int) -> logging.RootLogger:
     streamHandler.setFormatter(formatter)
     log.addHandler(streamHandler)
 
-    fileHandler = RotatingFileHandler(filename, maxBytes=(1 * 1024 * 1024), backupCount=7)
+    fileHandler = RotatingFileHandler("/var/log/" + filename, maxBytes=(1 * 1024 * 1024), backupCount=7)
     fileHandler.setFormatter(formatter)
     log.addHandler(fileHandler)
 
